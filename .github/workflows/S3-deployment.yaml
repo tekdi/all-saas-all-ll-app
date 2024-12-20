@@ -1,0 +1,70 @@
+name: S3 Deployment on the ALL-SAAS-DEV
+
+on: [push]
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Clean up node_modules and package-lock.json
+        run: |
+          echo "Cleaning up node_modules and package-lock.json..."
+          rm -rf node_modules
+          rm -f package-lock.json
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Application
+        run: |
+          echo "Setting up environment variables and building the application..."
+          if [ -f .env ]; then
+            rm .env
+          fi
+          echo '${{ secrets.DEV_ENV }}' > .env
+          npm run build
+
+      - name: Show Current Directory
+        run: |
+          echo "Current Working Directory:"
+          pwd
+
+      - name: List Directory Contents
+        run: |
+          echo "Contents of the current directory:"
+          ls -lrta
+
+      - name: List Dist Directory Contents
+        run: |
+          echo "Contents of the dist directory:"
+          ls -lrta dist
+
+      - name: Install AWS CLI
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y awscli
+
+      - name: Configure AWS credentials
+        run: |
+          echo "Configuring AWS credentials..."
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region ${{ secrets.AWS_S3_BUCKET_REGION }}
+
+      - name: Upload to S3 Bucket
+        run: |
+          echo "Uploading contents of the dist directory to the S3 bucket..."
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }}/
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          echo "Invalidating CloudFront cache..."
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
