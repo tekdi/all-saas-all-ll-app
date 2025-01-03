@@ -34,6 +34,13 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Ensure .env.local Exists
+        run: |
+          if [ ! -f .env.local ]; then
+            echo "Creating .env.local"
+            touch .env.local
+          fi
+
       - name: Build and Package Application
         env:
           REACT_APP_MODE: ${{ vars.REACT_APP_MODE }}
@@ -84,7 +91,6 @@ jobs:
         run: |
           echo "REACT_APP_AWS_S3_BUCKET_NAME: $REACT_APP_AWS_S3_BUCKET_NAME"
           echo "AWS_REGION: $AWS_REGION"
-          echo "secrate": ${{ vars.REACT_APP_AWS_S3_BUCKET_NAME }}
 
       - name: Cloudfront Invalidation
         uses: chetan/invalidate-cloudfront-action@master
