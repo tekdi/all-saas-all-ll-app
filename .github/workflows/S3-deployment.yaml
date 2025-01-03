@@ -34,9 +34,6 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Run Husky Install
-        run: npm run prepare
-
       - name: Build and Package Application
         env:
           REACT_APP_MODE: ${{ vars.REACT_APP_MODE }}
